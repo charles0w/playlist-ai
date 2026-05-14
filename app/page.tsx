@@ -671,6 +671,7 @@ export default function Home() {
   const [saved, setSaved]         = useState(false);
   const [lastAction, setLast]     = useState("");
   const [error, setError]         = useState("");
+  const [retrying, setRetrying]   = useState(false);
 
   const matchedVibe = VIBES.find((v) => v.label.toLowerCase() === mood.toLowerCase());
   const heroPhoto = matchedVibe?.photo || null;
@@ -756,6 +757,28 @@ export default function Home() {
     }
   }
 
+  async function retryAddTracks() {
+    if (!result) return;
+    setRetrying(true);
+    setError("");
+    try {
+      const uris = allTracks.map((t) => t.uri);
+      const res = await fetch("/api/add-tracks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playlist_id: result.playlist_id, uris }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Something went wrong");
+      setResult({ ...result, tracks_added: true });
+      setLast(`${allTracks.length} tracks added to Spotify`);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setRetrying(false);
+    }
+  }
+
   function copyLink() {
     if (!result) return;
     navigator.clipboard.writeText(result.url).then(() => {
@@ -816,7 +839,19 @@ export default function Home() {
               />
               <TrackList tracks={allTracks} newSet={newIdxSet} />
             </div>
-            {error && <div className="error-card">{error}</div>}
+            {result.tracks_added === false && (
+              <div className="error-card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <span>Tracks weren{"'"}t added to your Spotify playlist.</span>
+                <button
+                  onClick={retryAddTracks}
+                  disabled={retrying}
+                  style={{ flexShrink: 0, background: "#1db954", color: "#000", border: "none", borderRadius: 20, padding: "6px 16px", fontWeight: 600, cursor: retrying ? "not-allowed" : "pointer", opacity: retrying ? 0.6 : 1 }}
+                >
+                  {retrying ? "Adding…" : "Add to Spotify ↑"}
+                </button>
+              </div>
+            )}
+            {error && result.tracks_added !== false && <div className="error-card">{error}</div>}
             <button
               className="reset-btn"
               onClick={() => { setResult(null); setAllTracks([]); setMood(""); setLast(""); }}
