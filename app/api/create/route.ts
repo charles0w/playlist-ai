@@ -84,11 +84,12 @@ Rules: Exactly 20 tracks. Real songs on Spotify. Match the mood. Max 2 tracks pe
         body: JSON.stringify({ uris: uris.slice(i, i + 100) }),
       });
       if (!addRes.ok) {
+        if (addRes.status === 403) {
+          jar.delete("spotify_token");
+          return NextResponse.json({ error: "reauth" }, { status: 401 });
+        }
         const raw = await addRes.text().catch(() => "");
-        const msg = addRes.status === 403
-          ? "Spotify denied adding tracks — please log out and reconnect Spotify to refresh permissions."
-          : `Add tracks (${addRes.status}): ${raw || "unknown error"}`;
-        throw new Error(msg);
+        throw new Error(`Add tracks (${addRes.status}): ${raw || "unknown error"}`);
       }
     }
 

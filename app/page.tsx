@@ -699,6 +699,7 @@ export default function Home() {
         body: JSON.stringify({ mood }),
       });
       const data = await res.json();
+      if (res.status === 401) { window.location.href = "/api/auth/spotify"; return; }
       if (!res.ok) throw new Error(data.error ?? "Something went wrong");
       const r = data as PlaylistResult;
       setResult(r);
@@ -727,6 +728,7 @@ export default function Home() {
         body: JSON.stringify(body),
       });
       const data = await res.json();
+      if (res.status === 401) { window.location.href = "/api/auth/spotify"; return; }
       if (!res.ok) throw new Error(data.error ?? "Something went wrong");
 
       const newTracks = data.tracks as SpotifyTrack[];
