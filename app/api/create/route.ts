@@ -86,7 +86,7 @@ Rules: Exactly 20 tracks. Real songs on Spotify. Match the mood. Max 2 tracks pe
     const uris = foundTracks.map((t) => t.uri);
     let tracks_added = true;
     for (let i = 0; i < uris.length; i += 100) {
-      const addRes = await fetch(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks`, {
+      const addRes = await fetch(`https://api.spotify.com/v1/playlists/${playlist.id}/items`, {
         method: "POST",
         headers: { Authorization: `Bearer ${userToken}`, "Content-Type": "application/json" },
         body: JSON.stringify({ uris: uris.slice(i, i + 100) }),

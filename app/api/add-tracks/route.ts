@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     for (let i = 0; i < uris.length; i += 100) {
-      const addRes = await fetch(`https://api.spotify.com/v1/playlists/${playlist_id}/tracks`, {
+      const addRes = await fetch(`https://api.spotify.com/v1/playlists/${playlist_id}/items`, {
         method: "POST",
         headers: { Authorization: `Bearer ${userToken}`, "Content-Type": "application/json" },
         body: JSON.stringify({ uris: uris.slice(i, i + 100) }),

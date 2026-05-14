@@ -84,7 +84,7 @@ Rules: Exactly 15 tracks. Real songs on Spotify. No repeats. Max 1 per artist.`;
     // Add to playlist using user token
     if (uris.length > 0) {
       for (let i = 0; i < uris.length; i += 100) {
-        const addRes = await fetch(`https://api.spotify.com/v1/playlists/${playlist_id}/tracks`, {
+        const addRes = await fetch(`https://api.spotify.com/v1/playlists/${playlist_id}/items`, {
           method: "POST",
           headers: { Authorization: `Bearer ${userToken}`, "Content-Type": "application/json" },
           body: JSON.stringify({ uris: uris.slice(i, i + 100) }),
