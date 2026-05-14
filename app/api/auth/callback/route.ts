@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   const granted = (data.scope as string ?? "").split(" ");
   const missing = REQUIRED_SCOPES.filter((s) => !granted.includes(s));
   if (missing.length > 0) {
-    return NextResponse.redirect(new URL("/api/auth/spotify", req.url));
+    return NextResponse.redirect(new URL("/?error=permissions", req.url));
   }
 
   const jar = await cookies();
