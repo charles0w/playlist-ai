@@ -13,6 +13,13 @@ export async function POST(req: NextRequest) {
     const userToken = jar.get("spotify_token")?.value;
     if (!userToken) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+    const scope = jar.get("spotify_scope")?.value ?? "";
+    if (!scope.includes("playlist-modify-public")) {
+      jar.delete("spotify_token");
+      jar.delete("spotify_scope");
+      return NextResponse.json({ error: "reauth" }, { status: 401 });
+    }
+
     const { mood } = await req.json();
     if (!mood) return NextResponse.json({ error: "missing mood" }, { status: 400 });
 

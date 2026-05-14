@@ -36,12 +36,14 @@ export async function GET(req: NextRequest) {
   }
 
   const jar = await cookies();
-  jar.set("spotify_token", data.access_token, {
+  const cookieOpts = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    maxAge: data.expires_in,
+    maxAge: data.expires_in as number,
     path: "/",
-  });
+  };
+  jar.set("spotify_token", data.access_token, cookieOpts);
+  jar.set("spotify_scope", data.scope ?? "", cookieOpts);
 
   return NextResponse.redirect(new URL("/", req.url));
 }
