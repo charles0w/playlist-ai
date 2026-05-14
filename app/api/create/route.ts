@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     if (!userToken) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
     const scope = jar.get("spotify_scope")?.value ?? "";
-    if (!scope.includes("playlist-modify-public")) {
+    if (!scope.includes("playlist-modify-private") && !scope.includes("playlist-modify-public")) {
       jar.delete("spotify_token");
       jar.delete("spotify_scope");
       return NextResponse.json({ error: "reauth" }, { status: 401 });
@@ -73,7 +73,7 @@ Rules: Exactly 20 tracks. Real songs on Spotify. Match the mood. Max 2 tracks pe
       body: JSON.stringify({
         name: generated.playlist_name,
         description: generated.playlist_description,
-        public: true,
+        public: false,
       }),
     });
     if (!createRes.ok) {
