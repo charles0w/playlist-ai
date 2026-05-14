@@ -49,9 +49,13 @@ Rules: Exactly 15 tracks. Real songs on Spotify. No repeats. Max 1 per artist.`;
 
     const msg = await claude.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 2000,
+      max_tokens: 4096,
       messages: [{ role: "user", content: prompt }],
     });
+
+    if (msg.stop_reason === "max_tokens") {
+      throw new Error("Claude response was truncated. Please try again.");
+    }
 
     let raw = (msg.content[0] as { text: string }).text.trim();
     if (raw.startsWith("```")) {
@@ -59,11 +63,12 @@ Rules: Exactly 15 tracks. Real songs on Spotify. No repeats. Max 1 per artist.`;
       if (raw.startsWith("json")) raw = raw.slice(4);
       raw = raw.split("```")[0].trim();
     }
-    const generated = JSON.parse(raw) as {
-      tracks: { artist: string; track: string }[];
-      shift_description?: string;
-    };
-
+    let generated: { tracks: { artist: string; track: string }[]; shift_description?: string };
+    try {
+      generated = JSON.parse(raw);
+    } catch {
+      throw new Error("Claude returned invalid JSON. Please try again.");
+    }
     // Search using Client Credentials app token
     const appToken = await getAppToken();
     const foundTracks = await searchAll(appToken, generated.tracks);
@@ -79,7 +84,10 @@ Rules: Exactly 15 tracks. Real songs on Spotify. No repeats. Max 1 per artist.`;
         });
         if (!addRes.ok) {
           const raw = await addRes.text().catch(() => "");
-          throw new Error(`Add tracks (${addRes.status}): ${raw || "Forbidden"}`);
+          const msg = addRes.status === 403
+            ? "Spotify denied adding tracks — please log out and reconnect Spotify to refresh permissions."
+            : `Add tracks (${addRes.status}): ${raw || "unknown error"}`;
+          throw new Error(msg);
         }
       }
     }

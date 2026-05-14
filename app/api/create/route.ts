@@ -19,21 +19,25 @@ export async function POST(req: NextRequest) {
     // 1. Claude generates track list
     const msg = await claude.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 3000,
+      max_tokens: 8192,
       messages: [{
         role: "user",
         content: `You are a music curator. Create a Spotify playlist for this mood/vibe: "${mood}"
 
-Return ONLY valid JSON (no markdown fences):
+Return ONLY valid JSON (no markdown, no extra text):
 {
   "playlist_name": "short catchy name with emoji",
   "playlist_description": "one sentence description",
   "tracks": [{"artist": "Artist Name", "track": "Track Title"}, ...]
 }
 
-Rules: Exactly 25 tracks. Real songs on Spotify. Match the mood. Max 2 tracks per artist.`,
+Rules: Exactly 20 tracks. Real songs on Spotify. Match the mood. Max 2 tracks per artist.`,
       }],
     });
+
+    if (msg.stop_reason === "max_tokens") {
+      throw new Error("Claude response was truncated. Please try again.");
+    }
 
     let raw = (msg.content[0] as { text: string }).text.trim();
     if (raw.startsWith("```")) {
@@ -41,11 +45,12 @@ Rules: Exactly 25 tracks. Real songs on Spotify. Match the mood. Max 2 tracks pe
       if (raw.startsWith("json")) raw = raw.slice(4);
       raw = raw.split("```")[0].trim();
     }
-    const generated = JSON.parse(raw) as {
-      playlist_name: string;
-      playlist_description: string;
-      tracks: { artist: string; track: string }[];
-    };
+    let generated: { playlist_name: string; playlist_description: string; tracks: { artist: string; track: string }[] };
+    try {
+      generated = JSON.parse(raw);
+    } catch {
+      throw new Error("Claude returned invalid JSON. Please try again.");
+    }
 
     // 2. Search catalog using app token (Client Credentials — no user scope needed)
     const appToken = await getAppToken();
@@ -61,7 +66,7 @@ Rules: Exactly 25 tracks. Real songs on Spotify. Match the mood. Max 2 tracks pe
       body: JSON.stringify({
         name: generated.playlist_name,
         description: generated.playlist_description,
-        public: false,
+        public: true,
       }),
     });
     if (!createRes.ok) {
@@ -80,7 +85,10 @@ Rules: Exactly 25 tracks. Real songs on Spotify. Match the mood. Max 2 tracks pe
       });
       if (!addRes.ok) {
         const raw = await addRes.text().catch(() => "");
-        throw new Error(`Add tracks (${addRes.status}): ${raw || "Forbidden"}`);
+        const msg = addRes.status === 403
+          ? "Spotify denied adding tracks — please log out and reconnect Spotify to refresh permissions."
+          : `Add tracks (${addRes.status}): ${raw || "unknown error"}`;
+        throw new Error(msg);
       }
     }
 
