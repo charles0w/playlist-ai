@@ -84,6 +84,7 @@ Rules: Exactly 20 tracks. Real songs on Spotify. Match the mood. Max 2 tracks pe
 
     // 4. Add tracks using user token
     const uris = foundTracks.map((t) => t.uri);
+    let tracks_added = true;
     for (let i = 0; i < uris.length; i += 100) {
       const addRes = await fetch(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks`, {
         method: "POST",
@@ -91,8 +92,9 @@ Rules: Exactly 20 tracks. Real songs on Spotify. Match the mood. Max 2 tracks pe
         body: JSON.stringify({ uris: uris.slice(i, i + 100) }),
       });
       if (!addRes.ok) {
+        if (addRes.status === 403) { tracks_added = false; break; }
         const body = await addRes.json().catch(() => ({}));
-        throw new Error(`Spotify ${addRes.status}: ${body?.error?.message ?? JSON.stringify(body) ?? "unknown error"}`);
+        throw new Error(`Spotify ${addRes.status}: ${body?.error?.message ?? "unknown error"}`);
       }
     }
 
@@ -102,6 +104,7 @@ Rules: Exactly 20 tracks. Real songs on Spotify. Match the mood. Max 2 tracks pe
       playlist_description: generated.playlist_description,
       url: playlist.external_urls.spotify,
       tracks: foundTracks,
+      tracks_added,
     });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Internal server error";

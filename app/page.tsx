@@ -19,6 +19,7 @@ type PlaylistResult = {
   playlist_description: string;
   url: string;
   tracks: SpotifyTrack[];
+  tracks_added?: boolean;
 };
 
 type Vibe = { label: string; glyph: string; photo: string };
@@ -704,7 +705,11 @@ export default function Home() {
       const r = data as PlaylistResult;
       setResult(r);
       setAllTracks(r.tracks);
-      setLast(`${r.tracks.length} tracks added`);
+      if (r.tracks_added === false) {
+        setError("Spotify blocked auto-adding tracks — click any song below to open it in Spotify and add it manually.");
+      } else {
+        setLast(`${r.tracks.length} tracks added`);
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
